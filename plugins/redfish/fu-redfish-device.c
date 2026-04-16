@@ -591,8 +591,15 @@ fu_redfish_device_probe(FuDevice *dev, GError **error)
 								   NULL);
 				if (tmp == NULL)
 					continue;
-				if (!fu_redfish_device_probe_related_item(self, tmp, error))
-					return FALSE;
+				{
+					g_autoptr(GError) error_related = NULL;
+					if (!fu_redfish_device_probe_related_item(self,
+										  tmp,
+										  &error_related))
+						g_debug("ignoring related item %s: %s",
+							tmp,
+							error_related->message);
+				}
 			}
 		}
 	}

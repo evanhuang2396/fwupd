@@ -10,6 +10,7 @@
 
 #include "fu-redfish-backend.h"
 #include "fu-redfish-common.h"
+#include "fu-redfish-firmware-update-service-device.h"
 #include "fu-redfish-hpe-device.h"
 #include "fu-redfish-legacy-device.h"
 #include "fu-redfish-multipart-device.h"
@@ -376,6 +377,19 @@ fu_redfish_backend_coldplug(FuBackend *backend, FuProgress *progress, GError **e
 				    "HttpPushUri and MultipartHttpPushUri are invalid");
 		return FALSE;
 	}
+
+	/* create a synthetic device representing the UpdateService endpoint */
+	g_autoptr(FuRedfishFirmwareUpdateServiceDevice) update_dev =
+	    fu_redfish_firmware_update_service_device_new(fu_backend_get_context(FU_BACKEND(self)),
+							  self);
+	g_autoptr(FuDeviceLocker) update_locker = NULL;
+	g_autoptr(GError) error_update = NULL;
+	update_locker = fu_device_locker_new(FU_DEVICE(update_dev), &error_update);
+	if (update_locker != NULL)
+		fu_backend_device_added(FU_BACKEND(self), FU_DEVICE(update_dev));
+	else
+		g_debug("failed to setup UpdateService device: %s", error_update->message);
+
 	if (!fwupd_json_object_get_integer_with_default(json_obj,
 							"MaxImageSizeBytes",
 							&max_image_size,
